@@ -25,7 +25,7 @@ public class RepeaterCellGUI extends Screen {
     private final Repeater repeaterCell;
     private ModWidget tickCount;
 
-    private final ResourceLocation GUI = new ResourceLocation(TinyRedstone.MODID, "textures/gui/transparent.png");
+    private final ResourceLocation GUI = ResourceLocation.fromNamespaceAndPath(TinyRedstone.MODID,  "textures/gui/transparent.png");
 
     protected RepeaterCellGUI(PanelTile panelTile, Integer cellIndex, Repeater repeaterCell) {
         super(Component.translatable("tinyredstone:repeaterGUI"));
@@ -66,7 +66,7 @@ public class RepeaterCellGUI extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double scroll)
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY)
     {
         if (
                 mouseX>(this.width - WIDTH) / 2 &&
@@ -74,8 +74,8 @@ public class RepeaterCellGUI extends Screen {
                         mouseY>(this.height - HEIGHT) / 2 &&
                         mouseY<(this.height + HEIGHT) / 2
         ) {
-            if (scroll != 0) {
-                Double dScroll = scroll*2;
+            if (scrollY != 0) {
+                Double dScroll = scrollY*2;
                 if (hasShiftDown())
                     dScroll *= 10;
                 changeTicks(dScroll.intValue());
@@ -83,7 +83,7 @@ public class RepeaterCellGUI extends Screen {
             }
             return false;
         }
-        return super.mouseScrolled(mouseX, mouseY, scroll);
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
     }
 
     private void close() {

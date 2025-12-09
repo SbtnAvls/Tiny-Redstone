@@ -1,15 +1,11 @@
 package com.dannyandson.tinyredstone.items;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
-import net.minecraftforge.client.extensions.common.IClientItemExtensions;
-
-import java.util.function.Consumer;
 
 public class PanelCoverItem extends PanelCellItem{
 
@@ -18,28 +14,15 @@ public class PanelCoverItem extends PanelCellItem{
        return InteractionResult.PASS;
     }
 
-    @Override
-    public void initializeClient(Consumer<IClientItemExtensions> consumer) {
-        consumer.accept(new IClientItemExtensions() {
-                            /**
-                             * @return This Item's renderer, or the default instance if it does not have
-                             * one.
-                             */
-                            @Override
-                            public BlockEntityWithoutLevelRenderer getCustomRenderer() {
-                                return new PanelCoverItemRenderer(Minecraft.getInstance().getBlockEntityRenderDispatcher(), Minecraft.getInstance().getEntityModels());
-                            }
-                        }
-        );
-    }
-
+    // Note: Custom BEWLR is now registered via RegisterClientExtensionsEvent in ClientSetup
 
     @Override
     public Component getName(ItemStack stack) {
-        if (stack.hasTag()) {
+        // In 1.21+, item components replace NBT tags
+        if (stack.has(DataComponents.CUSTOM_DATA)) {
             String thisName = super.getName(stack).getString();
             String fromBlockName = null;
-            CompoundTag itemNBT = stack.getTag();
+            CompoundTag itemNBT = stack.get(DataComponents.CUSTOM_DATA).copyTag();
             CompoundTag madeFromTag = itemNBT.getCompound("made_from");
             if (madeFromTag.contains("namespace")) {
                 fromBlockName = (Component.translatable("block." + madeFromTag.getString("namespace") + "." + madeFromTag.getString("path"))).getString();
@@ -49,6 +32,4 @@ public class PanelCoverItem extends PanelCellItem{
 
         return super.getName(stack);
     }
-
-
 }

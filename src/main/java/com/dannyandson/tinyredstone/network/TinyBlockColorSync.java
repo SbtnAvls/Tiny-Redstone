@@ -1,58 +1,49 @@
 package com.dannyandson.tinyredstone.network;
 
+import com.dannyandson.tinyredstone.TinyRedstone;
 import com.dannyandson.tinyredstone.api.IColorablePanelCell;
 import com.dannyandson.tinyredstone.api.IPanelCell;
 import com.dannyandson.tinyredstone.blocks.PanelCellPos;
 import com.dannyandson.tinyredstone.blocks.PanelTile;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.function.Supplier;
+public record TinyBlockColorSync(BlockPos pos, int cellIndex, int color) implements CustomPacketPayload {
 
-public class TinyBlockColorSync {
-    private final BlockPos pos;
-    private final int cellIndex;
-    private final int color;
+    public static final Type<TinyBlockColorSync> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(TinyRedstone.MODID, "tiny_block_color_sync"));
 
-    public TinyBlockColorSync(BlockPos pos, int cellIndex, int color)
-    {
-        this.pos=pos;
-        this.cellIndex=cellIndex;
-        this.color = color;
+    public static final StreamCodec<FriendlyByteBuf, TinyBlockColorSync> STREAM_CODEC = StreamCodec.composite(
+            BlockPos.STREAM_CODEC, TinyBlockColorSync::pos,
+            ByteBufCodecs.VAR_INT, TinyBlockColorSync::cellIndex,
+            ByteBufCodecs.VAR_INT, TinyBlockColorSync::color,
+            TinyBlockColorSync::new
+    );
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 
-    public TinyBlockColorSync(FriendlyByteBuf buffer)
-    {
-        this.pos= buffer.readBlockPos();
-        this.cellIndex=buffer.readInt();
-        this.color =buffer.readInt();
-    }
-
-    public void toBytes(FriendlyByteBuf buf)
-    {
-        buf.writeBlockPos(pos);
-        buf.writeInt(cellIndex);
-        buf.writeInt(color);
-    }
-
-    public boolean handle(Supplier<NetworkEvent.Context> ctx) {
-
-        ctx.get().enqueueWork(()-> {
-            BlockEntity te =  ctx.get().getSender().level().getBlockEntity(this.pos);
-            if (te instanceof PanelTile)
-            {
-                PanelCellPos cellPos = PanelCellPos.fromIndex((PanelTile) te,this.cellIndex);
-                IPanelCell cell = cellPos.getIPanelCell();
-                if (cell instanceof IColorablePanelCell)
-                {
-                    ((IColorablePanelCell)cell).setColor(this.color);
-                    ((PanelTile) te).flagSync();
+    public static void handle(TinyBlockColorSync packet, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (ctx.player() instanceof ServerPlayer serverPlayer) {
+                BlockEntity te = serverPlayer.level().getBlockEntity(packet.pos());
+                if (te instanceof PanelTile panelTile) {
+                    PanelCellPos cellPos = PanelCellPos.fromIndex(panelTile, packet.cellIndex());
+                    IPanelCell cell = cellPos.getIPanelCell();
+                    if (cell instanceof IColorablePanelCell colorable) {
+                        colorable.setColor(packet.color());
+                        panelTile.flagSync();
+                    }
                 }
             }
-            ctx.get().setPacketHandled(true);
         });
-        return true;
     }
 }

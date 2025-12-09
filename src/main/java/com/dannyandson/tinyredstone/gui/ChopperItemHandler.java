@@ -1,10 +1,8 @@
 package com.dannyandson.tinyredstone.gui;
 
 import com.dannyandson.tinyredstone.blocks.ChopperBlockEntity;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.items.IItemHandler;
-import net.minecraftforge.items.ItemHandlerHelper;
+import net.neoforged.neoforge.items.IItemHandler;
 
 import javax.annotation.Nonnull;
 
@@ -41,7 +39,7 @@ public class ChopperItemHandler implements IItemHandler {
 
         if (!existing.isEmpty())
         {
-            if (!ItemHandlerHelper.canItemStacksStack(stack, existing))
+            if (!ItemStack.isSameItemSameComponents(stack, existing))
                 return stack;
 
             limit -= existing.getCount();
@@ -56,7 +54,7 @@ public class ChopperItemHandler implements IItemHandler {
         {
             if (existing.isEmpty())
             {
-                innerHandler.setItem(slot, reachedLimit ? ItemHandlerHelper.copyStackWithSize(stack, limit) : stack);
+                innerHandler.setItem(slot, reachedLimit ? stack.copyWithCount(limit) : stack);
             }
             else
             {
@@ -65,7 +63,7 @@ public class ChopperItemHandler implements IItemHandler {
             innerHandler.setChanged();
         }
 
-        return reachedLimit ? ItemHandlerHelper.copyStackWithSize(stack, stack.getCount()- limit) : ItemStack.EMPTY;
+        return reachedLimit ? stack.copyWithCount(stack.getCount() - limit) : ItemStack.EMPTY;
     }
 
     @Nonnull

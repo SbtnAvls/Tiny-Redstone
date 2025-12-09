@@ -14,20 +14,20 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RenderGuiOverlayEvent;
-import net.minecraftforge.client.gui.overlay.VanillaGuiOverlay;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.RenderGuiLayerEvent;
+import net.neoforged.neoforge.client.gui.VanillaGuiLayers;
 
-@Mod.EventBusSubscriber(modid = TinyRedstone.MODID, value = Dist.CLIENT)
+@EventBusSubscriber(modid = TinyRedstone.MODID, value = Dist.CLIENT)
 public class ToolbarOverlay {
 
-    public static ResourceLocation TEXTURE_ROTATION_LOCK = new ResourceLocation(TinyRedstone.MODID,"block/rotation_lock");
+    public static ResourceLocation TEXTURE_ROTATION_LOCK = ResourceLocation.fromNamespaceAndPath(TinyRedstone.MODID,"block/rotation_lock");
 
     @SubscribeEvent
-    public static void onRenderGUI(final RenderGuiOverlayEvent.Post event) {
-        if(event.getOverlay() == VanillaGuiOverlay.HOTBAR.type()) {
+    public static void onRenderGUI(final RenderGuiLayerEvent.Post event) {
+        if(event.getName().equals(VanillaGuiLayers.HOTBAR)) {
             final Minecraft mcInstance = Minecraft.getInstance();
             final LocalPlayer player = mcInstance.player;
 
@@ -35,7 +35,7 @@ public class ToolbarOverlay {
                 final int currentSlot = player.getInventory().selected;
                 final ItemStack stack = player.getInventory().items.get(currentSlot);
                 if (stack.getItem() instanceof AbstractPanelCellItem) {
-                    final Window window = event.getWindow();
+                    final Window window = mcInstance.getWindow();
                     final Side rotationLock = RotationLock.getRotationLock();
 
 

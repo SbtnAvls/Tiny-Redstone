@@ -1,5 +1,7 @@
 package com.dannyandson.tinyredstone.blocks;
 
+import com.dannyandson.tinyredstone.setup.Registration;
+import com.mojang.serialization.MapCodec;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.*;
 import net.minecraft.world.entity.player.Player;
@@ -14,12 +16,20 @@ import net.minecraft.world.phys.BlockHitResult;
 import javax.annotation.Nullable;
 
 public class ChopperBlock extends BaseEntityBlock {
+
+    public static final MapCodec<ChopperBlock> CODEC = simpleCodec(p -> new ChopperBlock());
+
     public ChopperBlock() {
         super(
                 Properties.of()
                         .sound(SoundType.STONE)
                         .strength(2.0f)
         );
+    }
+
+    @Override
+    protected MapCodec<? extends BaseEntityBlock> codec() {
+        return CODEC;
     }
 
     @Nullable
@@ -47,10 +57,8 @@ public class ChopperBlock extends BaseEntityBlock {
         }
     }
 
-    @SuppressWarnings("deprecation")
     @Override
-    @Deprecated
-    public InteractionResult use(BlockState blockState, Level level, BlockPos blockPos, Player player, InteractionHand interactionHand, BlockHitResult blockHitResult) {
+    protected InteractionResult useWithoutItem(BlockState blockState, Level level, BlockPos blockPos, Player player, BlockHitResult blockHitResult) {
         if (level.isClientSide) {
             return InteractionResult.SUCCESS;
         } else {
@@ -58,7 +66,6 @@ public class ChopperBlock extends BaseEntityBlock {
 
             if (menuProvider != null) {
                 player.openMenu(menuProvider);
-                //TODO stats?
             }
 
             return InteractionResult.CONSUME;

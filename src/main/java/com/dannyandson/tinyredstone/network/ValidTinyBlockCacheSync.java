@@ -1,5 +1,6 @@
 package com.dannyandson.tinyredstone.network;
 
+import com.dannyandson.tinyredstone.TinyRedstone;
 import com.dannyandson.tinyredstone.blocks.ChopperBlockEntity;
 import com.dannyandson.tinyredstone.blocks.RenderHelper;
 import com.dannyandson.tinyredstone.codec.TinyBlockData;
@@ -7,74 +8,71 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureManager;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraftforge.network.NetworkDirection;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
 import javax.annotation.Nullable;
-import java.util.function.Supplier;
+import java.util.Optional;
 
-public class ValidTinyBlockCacheSync {
+public record ValidTinyBlockCacheSync(ResourceLocation itemRegistryName, Optional<BlockPos> chopperPos) implements CustomPacketPayload {
 
-    ResourceLocation itemRegistryName;
-    BlockPos chopperPos;
+    public static final Type<ValidTinyBlockCacheSync> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(TinyRedstone.MODID, "valid_tiny_block_cache_sync"));
 
-    public ValidTinyBlockCacheSync(@Nullable BlockPos chopperPos, ResourceLocation itemRegistryName)
-    {
-        this.itemRegistryName=itemRegistryName;
-        this.chopperPos = chopperPos;
-    }
-
-    public ValidTinyBlockCacheSync(FriendlyByteBuf buffer){
-        this.itemRegistryName=buffer.readResourceLocation();
-        try {
-            this.chopperPos=buffer.readBlockPos();
-        }catch (IndexOutOfBoundsException e){
-            this.chopperPos=null;
+    public static final StreamCodec<FriendlyByteBuf, ValidTinyBlockCacheSync> STREAM_CODEC = new StreamCodec<>() {
+        @Override
+        public ValidTinyBlockCacheSync decode(FriendlyByteBuf buf) {
+            ResourceLocation registryName = buf.readResourceLocation();
+            Optional<BlockPos> chopperPos = Optional.empty();
+            if (buf.readBoolean()) {
+                chopperPos = Optional.of(buf.readBlockPos());
+            }
+            return new ValidTinyBlockCacheSync(registryName, chopperPos);
         }
+
+        @Override
+        public void encode(FriendlyByteBuf buf, ValidTinyBlockCacheSync packet) {
+            buf.writeResourceLocation(packet.itemRegistryName());
+            buf.writeBoolean(packet.chopperPos().isPresent());
+            packet.chopperPos().ifPresent(buf::writeBlockPos);
+        }
+    };
+
+    // Constructor helper for when chopperPos is nullable
+    public ValidTinyBlockCacheSync(@Nullable BlockPos chopperPos, ResourceLocation itemRegistryName) {
+        this(itemRegistryName, Optional.ofNullable(chopperPos));
     }
 
-    public void toBytes(FriendlyByteBuf buf)
-    {
-        buf.writeResourceLocation(this.itemRegistryName);
-        if (this.chopperPos!=null)
-            buf.writeBlockPos(this.chopperPos);
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 
-    public boolean handle(Supplier<NetworkEvent.Context> ctx) {
-        return (ctx.get().getDirection() == NetworkDirection.PLAY_TO_CLIENT)
-                ? clientHandle(ctx) : serverHandle(ctx);
-    }
-
-    public boolean clientHandle(Supplier<NetworkEvent.Context> ctx) {
-
-        ctx.get().enqueueWork(()-> {
-            ResourceLocation texture1 = new ResourceLocation(this.itemRegistryName.getNamespace(), "block/" + this.itemRegistryName.getPath());
-            ResourceLocation texture2 = new ResourceLocation(this.itemRegistryName.getNamespace(), "block/" + this.itemRegistryName.getPath() + "_side");
+    public static void handleClient(ValidTinyBlockCacheSync packet, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            ResourceLocation texture1 = ResourceLocation.fromNamespaceAndPath(packet.itemRegistryName().getNamespace(), "block/" + packet.itemRegistryName().getPath());
+            ResourceLocation texture2 = ResourceLocation.fromNamespaceAndPath(packet.itemRegistryName().getNamespace(), "block/" + packet.itemRegistryName().getPath() + "_side");
             TextureAtlasSprite sprite1 = RenderHelper.getSprite(texture1);
             TextureAtlasSprite sprite2 = RenderHelper.getSprite(texture2);
-            if (sprite1!=RenderHelper.getSprite(TextureManager.INTENTIONAL_MISSING_TEXTURE) || sprite2!=RenderHelper.getSprite(TextureManager.INTENTIONAL_MISSING_TEXTURE)) {
-                //tell server chopper menu at block pos to update
-                ModNetworkHandler.sendToServer(new ValidTinyBlockCacheSync(this.chopperPos, this.itemRegistryName));
+            if (sprite1 != RenderHelper.getSprite(TextureManager.INTENTIONAL_MISSING_TEXTURE) || sprite2 != RenderHelper.getSprite(TextureManager.INTENTIONAL_MISSING_TEXTURE)) {
+                // Tell server chopper menu at block pos to update
+                ModNetworkHandler.sendToServer(new ValidTinyBlockCacheSync(packet.chopperPos().orElse(null), packet.itemRegistryName()));
             }
-
-            ctx.get().setPacketHandled(true);
         });
-        return true;
     }
 
-    public boolean serverHandle(Supplier<NetworkEvent.Context> ctx) {
-
-        ctx.get().enqueueWork(() -> {
-            if (!TinyBlockData.validBlockTextureCache.contains(this.itemRegistryName.toString()))
-                TinyBlockData.validBlockTextureCache.add(this.itemRegistryName.toString());
-            if (this.chopperPos!=null){
-                if(ctx.get().getSender().level().getBlockEntity(this.chopperPos) instanceof ChopperBlockEntity chopperBlockEntity)
+    public static void handleServer(ValidTinyBlockCacheSync packet, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (!TinyBlockData.validBlockTextureCache.contains(packet.itemRegistryName().toString())) {
+                TinyBlockData.validBlockTextureCache.add(packet.itemRegistryName().toString());
+            }
+            if (packet.chopperPos().isPresent() && ctx.player() instanceof ServerPlayer serverPlayer) {
+                if (serverPlayer.level().getBlockEntity(packet.chopperPos().get()) instanceof ChopperBlockEntity chopperBlockEntity) {
                     chopperBlockEntity.setChanged();
+                }
             }
-            ctx.get().setPacketHandled(true);
         });
-        return true;
     }
-
 }

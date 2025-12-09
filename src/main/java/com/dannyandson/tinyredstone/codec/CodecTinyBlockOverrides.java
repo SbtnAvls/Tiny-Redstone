@@ -153,10 +153,9 @@ public class CodecTinyBlockOverrides extends SimpleJsonResourceReloadListener
             JsonElement element = entry.getValue();
             // if we fail to parse json, log an error and continue
             // if we succeeded, add the resulting TinyBlockData to the map
-            this.   codec.decode(JsonOps.INSTANCE, element)
-                    .get()
-                    .ifLeft(result -> newMap.put(key, result.getFirst()))
-                    .ifRight(partial -> TinyRedstone.LOGGER.error("Failed to parse data json for {} due to: {}", key.toString(), partial.message()));
+            var decoded = this.codec.decode(JsonOps.INSTANCE, element);
+            decoded.result().ifPresent(result -> newMap.put(key, result.getFirst()));
+            decoded.error().ifPresent(partial -> TinyRedstone.LOGGER.error("Failed to parse data json for {} due to: {}", key.toString(), partial.message()));
         }
 
         return newMap;

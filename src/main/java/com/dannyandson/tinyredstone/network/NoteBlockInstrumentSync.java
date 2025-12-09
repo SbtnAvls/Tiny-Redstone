@@ -1,58 +1,49 @@
 package com.dannyandson.tinyredstone.network;
 
+import com.dannyandson.tinyredstone.TinyRedstone;
 import com.dannyandson.tinyredstone.api.IPanelCell;
 import com.dannyandson.tinyredstone.blocks.PanelCellPos;
 import com.dannyandson.tinyredstone.blocks.PanelTile;
 import com.dannyandson.tinyredstone.blocks.panelcells.NoteBlock;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraftforge.network.NetworkEvent;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.function.Supplier;
+public record NoteBlockInstrumentSync(BlockPos pos, int cellIndex, String instrument) implements CustomPacketPayload {
 
-public class NoteBlockInstrumentSync {
-    private final BlockPos pos;
-    private final int cellIndex;
-    private final String instrument;
+    public static final Type<NoteBlockInstrumentSync> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(TinyRedstone.MODID, "note_block_instrument_sync"));
 
-    public NoteBlockInstrumentSync(BlockPos pos, int cellIndex, String instrument)
-    {
-        this.pos=pos;
-        this.cellIndex=cellIndex;
-        this.instrument = instrument;
+    public static final StreamCodec<FriendlyByteBuf, NoteBlockInstrumentSync> STREAM_CODEC = StreamCodec.composite(
+            BlockPos.STREAM_CODEC, NoteBlockInstrumentSync::pos,
+            ByteBufCodecs.VAR_INT, NoteBlockInstrumentSync::cellIndex,
+            ByteBufCodecs.STRING_UTF8, NoteBlockInstrumentSync::instrument,
+            NoteBlockInstrumentSync::new
+    );
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 
-    public NoteBlockInstrumentSync(FriendlyByteBuf buffer)
-    {
-        this.pos= buffer.readBlockPos();
-        this.cellIndex=buffer.readInt();
-        this.instrument =buffer.readUtf(32);
-    }
-
-    public void toBytes(FriendlyByteBuf buf)
-    {
-        buf.writeBlockPos(pos);
-        buf.writeInt(cellIndex);
-        buf.writeUtf(instrument);
-    }
-
-    public boolean handle(Supplier<NetworkEvent.Context> ctx) {
-
-        ctx.get().enqueueWork(()-> {
-            BlockEntity te =  ctx.get().getSender().level().getBlockEntity(this.pos);
-            if (te instanceof PanelTile)
-            {
-                PanelCellPos cellPos = PanelCellPos.fromIndex((PanelTile) te,this.cellIndex);
-                IPanelCell cell = cellPos.getIPanelCell();
-                if (cell instanceof NoteBlock)
-                {
-                    ((NoteBlock)cell).setInstrument(this.instrument);
-                    ((PanelTile) te).flagSync();
+    public static void handle(NoteBlockInstrumentSync packet, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (ctx.player() instanceof ServerPlayer serverPlayer) {
+                BlockEntity te = serverPlayer.level().getBlockEntity(packet.pos());
+                if (te instanceof PanelTile panelTile) {
+                    PanelCellPos cellPos = PanelCellPos.fromIndex(panelTile, packet.cellIndex());
+                    IPanelCell cell = cellPos.getIPanelCell();
+                    if (cell instanceof NoteBlock noteBlock) {
+                        noteBlock.setInstrument(packet.instrument());
+                        panelTile.flagSync();
+                    }
                 }
             }
-            ctx.get().setPacketHandled(true);
         });
-        return true;
     }
 }

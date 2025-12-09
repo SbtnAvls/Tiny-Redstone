@@ -16,7 +16,7 @@ import net.minecraft.world.phys.BlockHitResult;
 
 public class ChopperScreen extends AbstractContainerScreen<ChopperMenu> implements MenuAccess<ChopperMenu> {
 
-    public static final ResourceLocation CUTTER_GUI = new ResourceLocation(TinyRedstone.MODID, "textures/gui/block_chopper.png");
+    public static final ResourceLocation CUTTER_GUI = ResourceLocation.fromNamespaceAndPath(TinyRedstone.MODID,  "textures/gui/block_chopper.png");
     private ChopperMenu chopperMenu;
     private Button itemTypeButton = null;
 
@@ -48,7 +48,7 @@ public class ChopperScreen extends AbstractContainerScreen<ChopperMenu> implemen
 
     @Override
     public void render(GuiGraphics matrixStack, int mouseX, int mouseY, float partialTicks) {
-        this.renderBackground(matrixStack);
+        this.renderBackground(matrixStack, mouseX, mouseY, partialTicks);
         super.render(matrixStack, mouseX, mouseY, partialTicks);
         this.renderTooltip(matrixStack, mouseX, mouseY);
     }

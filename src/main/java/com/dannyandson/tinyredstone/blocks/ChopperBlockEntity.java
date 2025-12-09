@@ -4,7 +4,7 @@ import com.dannyandson.tinyredstone.gui.ChopperItemHandler;
 import com.dannyandson.tinyredstone.gui.ChopperMenu;
 import com.dannyandson.tinyredstone.setup.Registration;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -14,13 +14,6 @@ import net.minecraft.world.inventory.ResultContainer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.RandomizableContainerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.common.capabilities.Capability;
-import net.minecraftforge.common.capabilities.ForgeCapabilities;
-import net.minecraftforge.common.util.LazyOptional;
-import net.minecraftforge.items.IItemHandler;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 public class ChopperBlockEntity extends RandomizableContainerBlockEntity {
 
@@ -29,7 +22,6 @@ public class ChopperBlockEntity extends RandomizableContainerBlockEntity {
     private ChopperMenu chopperMenu;
 
     private final ChopperItemHandler itemHandler = createHandler();
-    private final LazyOptional<IItemHandler> handler = LazyOptional.of(() -> itemHandler);
     private String itemType = "Tiny Block";
 
 
@@ -78,42 +70,40 @@ public class ChopperBlockEntity extends RandomizableContainerBlockEntity {
         return resultContainer;
     }
 
+    /**
+     * Gets the item handler for capability registration
+     */
+    public ChopperItemHandler getItemHandler() {
+        return itemHandler;
+    }
+
     @Override
-    public void load(CompoundTag compoundTag) {
-        super.load(compoundTag);
+    protected void loadAdditional(CompoundTag compoundTag, HolderLookup.Provider provider) {
+        super.loadAdditional(compoundTag, provider);
 
         this.items = NonNullList.withSize(this.getContainerSize(), ItemStack.EMPTY);
 
-        this.items.set(0, ItemStack.of(compoundTag.getCompound("input_container")));
-        this.resultContainer.setItem(0, ItemStack.of(compoundTag.getCompound("output_container")));
+        // In 1.21+, use parseOptional with provider
+        this.items.set(0, ItemStack.parseOptional(provider, compoundTag.getCompound("input_container")));
+        this.resultContainer.setItem(0, ItemStack.parseOptional(provider, compoundTag.getCompound("output_container")));
         this.itemType = compoundTag.getString("output_type");
     }
 
     @Override
-    protected void saveAdditional(CompoundTag compoundTag) {
-        super.saveAdditional(compoundTag);
-        compoundTag.put("input_container", this.items.get(0).serializeNBT());
-        compoundTag.put("output_container", resultContainer.getItem(0).serializeNBT());
+    protected void saveAdditional(CompoundTag compoundTag, HolderLookup.Provider provider) {
+        super.saveAdditional(compoundTag, provider);
+        // In 1.21+, use save with provider
+        if (!this.items.get(0).isEmpty()) {
+            compoundTag.put("input_container", this.items.get(0).save(provider));
+        }
+        if (!resultContainer.getItem(0).isEmpty()) {
+            compoundTag.put("output_container", resultContainer.getItem(0).save(provider));
+        }
         compoundTag.putString("output_type", itemType);
     }
 
     private ChopperItemHandler createHandler() {
         return new ChopperItemHandler(this);
-    }
-
-    @Nonnull
-    @Override
-    public <T> LazyOptional<T> getCapability(@Nonnull Capability<T> cap, @Nullable Direction side) {
-        if (cap == ForgeCapabilities.ITEM_HANDLER) {
-            return handler.cast();
-        }
-        return super.getCapability(cap, side);
-    }
-
-    @Override
-    public void setRemoved() {
-        super.setRemoved();
-        handler.invalidate();
     }
 
     public String getItemType() {

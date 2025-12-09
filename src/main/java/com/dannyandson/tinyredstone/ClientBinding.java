@@ -14,16 +14,16 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.InputEvent;
-import net.minecraftforge.client.event.RegisterKeyMappingsEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.InputEvent;
+import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import org.lwjgl.glfw.GLFW;
 
 import java.lang.reflect.InvocationTargetException;
 
-@Mod.EventBusSubscriber(modid = TinyRedstone.MODID, value = Dist.CLIENT)
+@EventBusSubscriber(modid = TinyRedstone.MODID, value = Dist.CLIENT)
 public class ClientBinding {
 
     public static KeyMapping rotationLock;
@@ -35,7 +35,7 @@ public class ClientBinding {
 
     @SubscribeEvent
     public static void onKeyInput(InputEvent.Key keyInputEvent) {
-        if (keyInputEvent.isCanceled()) return;
+        // Note: isCanceled() removed in NeoForge 1.21
         int numberKey = keyInputEvent.getKey() - GLFW.GLFW_KEY_0;
         if(numberKey > 0 && numberKey <= 9) {
             final Player player = Minecraft.getInstance().player;
@@ -53,7 +53,7 @@ public class ClientBinding {
     @SubscribeEvent
     public static void wheelEvent(final InputEvent.MouseScrollingEvent mouseScrollEvent) {
         if (mouseScrollEvent.isCanceled()) return;
-        final double scrollDelta = mouseScrollEvent.getScrollDelta();
+        final double scrollDelta = mouseScrollEvent.getScrollDeltaY();
         if (scrollDelta == 0) return;
         final Player player = Minecraft.getInstance().player;
         if (player == null) return;

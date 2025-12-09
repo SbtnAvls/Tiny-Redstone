@@ -1,32 +1,36 @@
 package com.dannyandson.tinyredstone.network;
 
+import com.dannyandson.tinyredstone.TinyRedstone;
 import com.dannyandson.tinyredstone.blocks.RotationLock;
 import com.dannyandson.tinyredstone.blocks.Side;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import io.netty.buffer.ByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.function.Supplier;
+public record RotationLockSync(Side rotationLock) implements CustomPacketPayload {
 
-public class RotationLockSync {
-    private final Side rotationLock;
+    public static final Type<RotationLockSync> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(TinyRedstone.MODID, "rotation_lock_sync"));
 
-    public RotationLockSync(Side rotationLock) {
-        this.rotationLock = rotationLock;
+    public static final StreamCodec<ByteBuf, RotationLockSync> STREAM_CODEC = StreamCodec.composite(
+            ByteBufCodecs.VAR_INT.map(Side::fromIndex, Side::getIndex),
+            RotationLockSync::rotationLock,
+            RotationLockSync::new
+    );
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 
-    public RotationLockSync(FriendlyByteBuf buffer) {
-        this.rotationLock = buffer.readEnum(Side.class);
-    }
-
-    public void toBytes(FriendlyByteBuf buf) {
-        buf.writeEnum(rotationLock);
-    }
-
-    public boolean handle(Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(()-> {
-            RotationLock.lockServerRotation(ctx.get().getSender(), rotationLock);
-            ctx.get().setPacketHandled(true);
+    public static void handle(RotationLockSync packet, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (ctx.player() instanceof ServerPlayer serverPlayer) {
+                RotationLock.lockServerRotation(serverPlayer, packet.rotationLock());
+            }
         });
-        return true;
     }
 }

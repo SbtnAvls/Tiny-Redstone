@@ -8,6 +8,7 @@ import com.dannyandson.tinyredstone.blocks.PanelTile;
 import com.dannyandson.tinyredstone.blocks.Side;
 import com.dannyandson.tinyredstone.blocks.panelcells.TinyBlock;
 import com.dannyandson.tinyredstone.blocks.panelcells.TransparentBlock;
+import com.dannyandson.tinyredstone.compat.NbtHelper;
 import com.dannyandson.tinyredstone.gui.BlueprintGUI;
 import com.dannyandson.tinyredstone.setup.Registration;
 import net.minecraft.nbt.CompoundTag;
@@ -37,12 +38,12 @@ public class Blueprint extends Item {
     }
 
     @Override
-    public  void  appendHoverText(ItemStack stack, @Nullable Level world, List<Component> list, TooltipFlag flags)
+    public void appendHoverText(ItemStack stack, Item.TooltipContext context, List<Component> list, TooltipFlag flags)
     {
-        if (stack.getTag() !=null && stack.getTag().contains("blueprint"))
+        if (NbtHelper.containsTag(stack, "blueprint"))
         {
             list.add(Component.translatable("message.item.blueprint.full"));
-            List<ItemStack> blueprintItems = getRequiredItemStacks(stack.getTagElement("blueprint"));
+            List<ItemStack> blueprintItems = getRequiredItemStacks(NbtHelper.getTagElement(stack, "blueprint"));
             for (ItemStack item : blueprintItems)
             {
                 Component itemNameComponent = item.getHoverName();
@@ -76,12 +77,12 @@ public class Blueprint extends Item {
             }
         }
         if (panelTile != null) {
-            if (context.getItemInHand().getTag() !=null && context.getItemInHand().getTag().contains("blueprint"))
+            if (NbtHelper.containsTag(context.getItemInHand(), "blueprint"))
             {
                 Player player = context.getPlayer();
                 if (panelTile.getCellCount()==0 && player!=null)
                 {
-                    CompoundTag blueprintNBT = context.getItemInHand().getTagElement("blueprint");
+                    CompoundTag blueprintNBT = NbtHelper.getTagElement(context.getItemInHand(), "blueprint");
                     List<ItemStack> items = getRequiredItemStacks(blueprintNBT);
                     if (player.isCreative() || playerHasSufficientComponents(items, player)) {
 
@@ -127,7 +128,7 @@ public class Blueprint extends Item {
                 nbt.putInt("CustomModelData",1);
                 nbt.put("blueprint",blueprintNBT);
 
-                context.getItemInHand().setTag(nbt);
+                NbtHelper.setTag(context.getItemInHand(), nbt);
 
             }
         }
@@ -162,7 +163,7 @@ public class Blueprint extends Item {
                                 madeFromTag.putString("path", cellDataNBT.getString("made_from_path"));
                                 CompoundTag itemTag = new CompoundTag();
                                 itemTag.put("made_from", madeFromTag);
-                                itemStack.setTag(itemTag);
+                                NbtHelper.setTag(itemStack, itemTag);
                             }
                         }
 
@@ -211,8 +212,8 @@ public class Blueprint extends Item {
     private static boolean stacksAreMatchingItem(ItemStack stack1, ItemStack stack2){
         return stack1.getItem() == stack2.getItem() &&
                 (
-                        (!stack1.hasTag() && !stack2.hasTag()) ||
-                                (stack1.hasTag() && stack1.getTag().equals(stack2.getTag()))
+                        (!NbtHelper.hasTag(stack1) && !NbtHelper.hasTag(stack2)) ||
+                                (NbtHelper.hasTag(stack1) && NbtHelper.getTag(stack1).equals(NbtHelper.getTag(stack2)))
                 );
     }
 

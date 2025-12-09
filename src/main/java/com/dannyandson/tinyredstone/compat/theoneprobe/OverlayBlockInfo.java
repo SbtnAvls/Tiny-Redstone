@@ -1,5 +1,12 @@
 package com.dannyandson.tinyredstone.compat.theoneprobe;
 
+// TODO: Re-enable TheOneProbe when available for NeoForge 1.21.1
+// This file has been temporarily disabled due to TheOneProbe not being available for NeoForge 1.21.1
+
+/*
+Original imports and implementation commented out.
+TheOneProbe integration will be restored when the mod is updated for NeoForge 1.21.1.
+
 import com.dannyandson.tinyredstone.api.IOverlayBlockInfo;
 import com.dannyandson.tinyredstone.compat.OverlayBlockInfoMode;
 import mcjty.theoneprobe.api.CompoundText;
@@ -7,53 +14,9 @@ import mcjty.theoneprobe.api.IProbeInfo;
 import mcjty.theoneprobe.api.ProbeMode;
 import mcjty.theoneprobe.api.TextStyleClass;
 import net.minecraft.world.item.ItemStack;
+...
+*/
 
-public class OverlayBlockInfo implements IOverlayBlockInfo {
-    private final IProbeInfo probeInfo;
-    private final ProbeMode probeMode;
-    protected int power = -1;
-    protected OverlayBlockInfo(IProbeInfo probeInfo, ProbeMode probeMode) {
-        this.probeInfo = probeInfo;
-        this.probeMode = probeMode;
-    }
-
-    @Override
-    public OverlayBlockInfoMode getMode() {
-        switch (probeMode) {
-            case DEBUG: return OverlayBlockInfoMode.DEBUG;
-            case NORMAL: return OverlayBlockInfoMode.NORMAL;
-            case EXTENDED: return OverlayBlockInfoMode.EXTENDED;
-        }
-        return OverlayBlockInfoMode.NORMAL;
-    }
-
-    @Override
-    public void setPowerOutput(int power) {
-        this.power = power;
-    }
-
-    @Override
-    public void addText(String text) {
-        this.probeInfo.text(text);
-    }
-
-    @Override
-    public void addText(ItemStack itemStack, String text) {
-        this.probeInfo.horizontal().itemLabel(itemStack).text(text);
-    }
-
-    @Override
-    public void addText(String label, String text) {
-        this.probeInfo.text(CompoundText.createLabelInfo(label + ": ", text));
-    }
-
-    @Override
-    public void addText(ItemStack itemStack, String label, String text) {
-        this.probeInfo.horizontal().item(itemStack, this.probeInfo.defaultItemStyle().width(14).height(14)).text(CompoundText.createLabelInfo(label + ": ", text));
-    }
-
-    @Override
-    public void addInfo(String text) {
-        this.probeInfo.text(CompoundText.create().style(TextStyleClass.INFO).text(text));
-    }
+public class OverlayBlockInfo {
+    // Stub class - TheOneProbe integration disabled
 }

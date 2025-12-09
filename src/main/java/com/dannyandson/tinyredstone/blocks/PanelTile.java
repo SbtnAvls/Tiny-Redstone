@@ -12,13 +12,14 @@ import com.dannyandson.tinyredstone.network.PlaySound;
 import com.dannyandson.tinyredstone.setup.Registration;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.level.ClipContext;
@@ -32,7 +33,6 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import net.minecraftforge.common.ForgeMod;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nullable;
@@ -78,11 +78,7 @@ public class PanelTile extends BlockEntity {
 
     //Tell Minecraft to render this block whenever any of the block space is within view.
     //By default, it only renders when the base model is within view.
-    @Override
-    public AABB getRenderBoundingBox()
-    {
-        return new AABB(getBlockPos());
-    }
+    //Note: In NeoForge 1.21, getRenderBoundingBox was moved to BlockEntityRenderer
 
     /* When the world loads from disk, the server needs to send the TileEntity information to the client
     //  it uses getUpdatePacket(), getUpdateTag(), onDataPacket(), and handleUpdateTag() to do this:
@@ -96,31 +92,22 @@ public class PanelTile extends BlockEntity {
         return ClientboundBlockEntityDataPacket.create(this);
     }
 
-    @Override
-    public void onDataPacket(Connection net, ClientboundBlockEntityDataPacket pkt) {
-        if (this.level.isClientSide) {
-            this.cells.clear();
-            this.cellDirections.clear();
-        }
-        this.load(pkt.getTag());   // read from the nbt in the packet
-    }
-
     /* Creates a tag containing the TileEntity information, used by vanilla to transmit from server to client*/
     @Override
-    public CompoundTag getUpdateTag() {
+    public CompoundTag getUpdateTag(HolderLookup.Provider provider) {
         CompoundTag compoundtag = new CompoundTag();
-        this.saveAdditional(compoundtag);
+        this.saveAdditional(compoundtag, provider);
         return compoundtag;
     }
 
     /* Populates this TileEntity with information from the tag, used by vanilla to transmit from server to client*/
     @Override
-    public void handleUpdateTag(CompoundTag tag) {
+    public void handleUpdateTag(CompoundTag tag, HolderLookup.Provider provider) {
         if (this.level.isClientSide) {
             this.cells.clear();
             this.cellDirections.clear();
         }
-        this.load(tag);
+        this.loadAdditional(tag, provider);
     }
 
     public CompoundTag saveToNbt(CompoundTag compoundTag) {
@@ -154,8 +141,8 @@ public class PanelTile extends BlockEntity {
     }
 
     @Override
-    protected void saveAdditional(CompoundTag parentNBTTagCompound) {
-        super.saveAdditional(parentNBTTagCompound);
+    protected void saveAdditional(CompoundTag parentNBTTagCompound, HolderLookup.Provider provider) {
+        super.saveAdditional(parentNBTTagCompound, provider);
        try {
             if (this.strongPowerToNeighbors.size()==5) {
                 CompoundTag strongPowerToNeighbors = new CompoundTag();
@@ -213,10 +200,10 @@ public class PanelTile extends BlockEntity {
 
     // This is where you load the data that you saved in writeToNBT
     @Override
-    public void load(CompoundTag parentNBTTagCompound) {
+    protected void loadAdditional(CompoundTag parentNBTTagCompound, HolderLookup.Provider provider) {
         int previousLightOutput = this.lightOutput;
 
-        super.load(parentNBTTagCompound);
+        super.loadAdditional(parentNBTTagCompound, provider);
 
         // important rule: never trust the data you read from NBT, make sure it can't cause a crash
 
@@ -1539,7 +1526,7 @@ public class PanelTile extends BlockEntity {
         float x = (Mth.sin(-yRotation * ((float)Math.PI / 180F) - (float)Math.PI)) * v;
         float y = Mth.sin(-xRotation * ((float)Math.PI / 180F));
         float z = (Mth.cos(-yRotation * ((float)Math.PI / 180F) - (float)Math.PI)) * v;
-        double reachDistance = player.getAttribute(ForgeMod.BLOCK_REACH.get()).getValue();
+        double reachDistance = player.getAttributeValue(Attributes.BLOCK_INTERACTION_RANGE);
         Vec3 vec31 = eyePosition.add((double)x * reachDistance, (double)y * reachDistance, (double)z * reachDistance);
         return level.clip(new ClipContext(eyePosition, vec31, ClipContext.Block.COLLIDER, ClipContext.Fluid.ANY, player));
     }

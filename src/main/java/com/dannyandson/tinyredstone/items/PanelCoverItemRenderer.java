@@ -4,6 +4,7 @@ import com.dannyandson.tinyredstone.blocks.RenderHelper;
 import com.dannyandson.tinyredstone.blocks.Side;
 import com.dannyandson.tinyredstone.blocks.panelcovers.DarkCover;
 import com.dannyandson.tinyredstone.blocks.panelcovers.LightCover;
+import com.dannyandson.tinyredstone.compat.NbtHelper;
 import com.dannyandson.tinyredstone.setup.Registration;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -12,7 +13,6 @@ import net.minecraft.client.model.geom.EntityModelSet;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.block.model.ItemTransforms;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.nbt.CompoundTag;
@@ -33,11 +33,11 @@ public class PanelCoverItemRenderer extends BlockEntityWithoutLevelRenderer {
         boolean isTransparent = stack.getItem() == Registration.PANEL_COVER_LIGHT.get();
         TextureAtlasSprite sprite_top, sprite_front, sprite_right, sprite_back, sprite_left, sprite_bottom;
 
-        if (stack.hasTag()) {
-            CompoundTag itemNBT = stack.getTag();
+        CompoundTag itemNBT = NbtHelper.getTag(stack);
+        if (itemNBT != null) {
             CompoundTag madeFromTag = itemNBT.getCompound("made_from");
             if (madeFromTag.contains("namespace")) {
-                ResourceLocation itemId = new ResourceLocation(madeFromTag.getString("namespace"), madeFromTag.getString("path"));
+                ResourceLocation itemId = ResourceLocation.fromNamespaceAndPath(madeFromTag.getString("namespace"),  madeFromTag.getString("path"));
                 sprite_top = Registration.TINY_BLOCK_OVERRIDES.getSprite(itemId, Side.TOP);
                 sprite_front = Registration.TINY_BLOCK_OVERRIDES.getSprite(itemId, Side.FRONT);
                 sprite_right = Registration.TINY_BLOCK_OVERRIDES.getSprite(itemId, Side.RIGHT);

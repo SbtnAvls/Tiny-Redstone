@@ -3,6 +3,18 @@ package com.dannyandson.tinyredstone.blocks;
 public enum Side {
     FRONT, RIGHT, BACK, LEFT, TOP, BOTTOM;
 
+    public int getIndex() {
+        return this.ordinal();
+    }
+
+    public static Side fromIndex(int index) {
+        Side[] values = Side.values();
+        if (index >= 0 && index < values.length) {
+            return values[index];
+        }
+        return FRONT; // default fallback
+    }
+
     public Side getOpposite() {
         switch (this){
             case FRONT:return BACK;

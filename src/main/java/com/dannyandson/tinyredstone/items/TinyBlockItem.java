@@ -1,14 +1,8 @@
 package com.dannyandson.tinyredstone.items;
 
 import com.dannyandson.tinyredstone.setup.Registration;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.client.extensions.common.IClientItemExtensions;
-
-import java.util.function.Consumer;
 
 public class TinyBlockItem extends PanelCellItem {
 
@@ -16,9 +10,11 @@ public class TinyBlockItem extends PanelCellItem {
     public Component getName(ItemStack stack) {
         String thisName = super.getName(stack).getString();
         String fromBlockName = null;
-        if (stack.hasTag()) {
-            CompoundTag itemNBT = stack.getTag();
-            CompoundTag madeFromTag = itemNBT.getCompound("made_from");
+        // In 1.21+, item components replace NBT tags
+        // Check for custom data component
+        if (stack.has(net.minecraft.core.component.DataComponents.CUSTOM_DATA)) {
+            net.minecraft.nbt.CompoundTag itemNBT = stack.get(net.minecraft.core.component.DataComponents.CUSTOM_DATA).copyTag();
+            net.minecraft.nbt.CompoundTag madeFromTag = itemNBT.getCompound("made_from");
             if (madeFromTag.contains("namespace")) {
                 fromBlockName = (Component.translatable("block." + madeFromTag.getString("namespace") + "." + madeFromTag.getString("path"))).getString();
             }
@@ -33,15 +29,5 @@ public class TinyBlockItem extends PanelCellItem {
         return Component.nullToEmpty(thisName + " (" + fromBlockName + ")");
     }
 
-    @Override
-    public void initializeClient(Consumer<IClientItemExtensions> consumer) {
-        consumer.accept(new IClientItemExtensions() {
-                            @Override
-                            public BlockEntityWithoutLevelRenderer getCustomRenderer() {
-                                return new TinyBlockItemRenderer(Minecraft.getInstance().getBlockEntityRenderDispatcher(), Minecraft.getInstance().getEntityModels());
-                            }
-                        }
-        );
-    }
-
+    // Note: Custom BEWLR is now registered via RegisterClientExtensionsEvent in ClientSetup
 }

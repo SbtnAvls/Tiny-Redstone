@@ -6,6 +6,8 @@ import com.dannyandson.tinyredstone.network.PushChopperOutputType;
 import com.dannyandson.tinyredstone.network.ValidTinyBlockCacheSync;
 import com.dannyandson.tinyredstone.setup.Registration;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.Container;
@@ -18,10 +20,11 @@ import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomData;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.GlassBlock;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.TransparentBlock;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.registries.ForgeRegistries;
 
 public class ChopperMenu extends AbstractContainerMenu {
     public static ChopperMenu createChopperMenu(int containerId, Inventory playerInventory) {
@@ -123,33 +126,33 @@ public class ChopperMenu extends AbstractContainerMenu {
                 if (container instanceof ChopperBlockEntity chopperBlockEntity) {
                     boolean isFullBlock = inputBlockState.isCollisionShapeFullBlock(chopperBlockEntity.getLevel(), chopperBlockEntity.getBlockPos());
                     if (isFullBlock && !inputBlockState.isSignalSource() && !inputBlockState.hasBlockEntity()) {
-                        ResourceLocation inputRegistryName = ForgeRegistries.BLOCKS.getKey(inputBlock);
+                        ResourceLocation inputRegistryName = BuiltInRegistries.BLOCK.getKey(inputBlock);
                         if (!Registration.TINY_BLOCK_OVERRIDES.hasUsableTexture(inputRegistryName)) {
                             if (!chopperBlockEntity.getLevel().isClientSide)
                                 ModNetworkHandler.sendToNearestClient(new ValidTinyBlockCacheSync(chopperBlockEntity.getBlockPos(), inputRegistryName), chopperBlockEntity.getLevel(), chopperBlockEntity.getBlockPos());
-                        } else if (ForgeRegistries.BLOCKS.getKey(inputBlock) != null) {
+                        } else if (BuiltInRegistries.BLOCK.getKey(inputBlock) != null) {
                             CompoundTag madeFromTag = new CompoundTag();
-                            madeFromTag.putString("namespace", ForgeRegistries.BLOCKS.getKey(inputBlock).getNamespace());
-                            madeFromTag.putString("path", ForgeRegistries.BLOCKS.getKey(inputBlock).getPath());
+                            madeFromTag.putString("namespace", BuiltInRegistries.BLOCK.getKey(inputBlock).getNamespace());
+                            madeFromTag.putString("path", BuiltInRegistries.BLOCK.getKey(inputBlock).getPath());
                             if (getItemType().equals("Dark Cover")) {
                                 outputStack = Registration.PANEL_COVER_DARK.get().getDefaultInstance();
                                 outputStack.setCount(2);
-                                outputStack.addTagElement("made_from", madeFromTag);
+                                setCustomData(outputStack, madeFromTag);
                             } else if (getItemType().equals("Light Cover")) {
                                 outputStack = Registration.PANEL_COVER_LIGHT.get().getDefaultInstance();
                                 outputStack.setCount(2);
-                                outputStack.addTagElement("made_from", madeFromTag);
+                                setCustomData(outputStack, madeFromTag);
                             } else {
-                                if (inputBlock instanceof GlassBlock) {
+                                if (inputBlock instanceof TransparentBlock) {
                                     outputStack = Registration.TINY_TRANSPARENT_BLOCK.get().getDefaultInstance();
                                     outputStack.setCount(8);
-                                    if (!ForgeRegistries.BLOCKS.getKey(inputBlock).toString().equals("minecraft:glass"))
-                                        outputStack.addTagElement("made_from", madeFromTag);
+                                    if (!BuiltInRegistries.BLOCK.getKey(inputBlock).toString().equals("minecraft:glass"))
+                                        setCustomData(outputStack, madeFromTag);
                                 } else {
                                     outputStack = Registration.TINY_SOLID_BLOCK.get().getDefaultInstance();
                                     outputStack.setCount(8);
-                                    if (!ForgeRegistries.BLOCKS.getKey(inputBlock).toString().equals("minecraft:white_wool"))
-                                        outputStack.addTagElement("made_from", madeFromTag);
+                                    if (!BuiltInRegistries.BLOCK.getKey(inputBlock).toString().equals("minecraft:white_wool"))
+                                        setCustomData(outputStack, madeFromTag);
                                 }
                             }
                         }
@@ -222,4 +225,12 @@ public class ChopperMenu extends AbstractContainerMenu {
         ModNetworkHandler.sendToServer(new PushChopperOutputType(itemType, pos));
     }
 
+    /**
+     * Helper method to set custom data on an ItemStack using the new 1.21+ data component system
+     */
+    private void setCustomData(ItemStack stack, CompoundTag madeFromTag) {
+        CompoundTag customTag = new CompoundTag();
+        customTag.put("made_from", madeFromTag);
+        stack.set(DataComponents.CUSTOM_DATA, CustomData.of(customTag));
+    }
 }

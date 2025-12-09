@@ -1,11 +1,11 @@
 package com.dannyandson.tinyredstone.gui;
 
 import com.dannyandson.tinyredstone.TinyRedstone;
+import com.dannyandson.tinyredstone.compat.NbtHelper;
 import com.dannyandson.tinyredstone.items.Blueprint;
 import com.dannyandson.tinyredstone.network.BlueprintSync;
 import com.dannyandson.tinyredstone.network.ModNetworkHandler;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -31,7 +31,7 @@ public class BlueprintGUI  extends Screen {
     private static final int WIDTH = 120;
     private static final int HEIGHT = 90;
 
-    private final ResourceLocation GUI = new ResourceLocation(TinyRedstone.MODID, "textures/gui/transparent.png");
+    private final ResourceLocation GUI = ResourceLocation.fromNamespaceAndPath(TinyRedstone.MODID,  "textures/gui/transparent.png");
 
     private final ItemStack blueprint;
     private boolean dialogOpen = false;
@@ -51,7 +51,7 @@ public class BlueprintGUI  extends Screen {
         addRenderableWidget(new ModWidget(relX, relY, WIDTH, HEIGHT, 0x88EEEEEE));
         addRenderableWidget(ModWidget.buildButton(relX + 20, relY + 50, 80, 20, Component.translatable("tinyredstone.close"), button -> close()));
 
-        if (this.blueprint.hasTag())
+        if (NbtHelper.hasTag(this.blueprint))
             button=ModWidget.buildButton(relX + 20, relY + 20, 80, 20, Component.translatable("tinyredstone.export"), button -> exportToFile());
         else
             button=ModWidget.buildButton(relX + 20, relY + 20, 80, 20, Component.translatable("tinyredstone.import"), button -> importFromFile());
@@ -109,7 +109,10 @@ public class BlueprintGUI  extends Screen {
                         File file = new File(path);
                         if (file.createNewFile()) {
                             FileWriter writer = new FileWriter(path);
-                            writer.write(blueprint.getTag().toString());
+                            CompoundTag tag = NbtHelper.getTag(blueprint);
+                            if (tag != null) {
+                                writer.write(tag.toString());
+                            }
                             writer.close();
                         }
                     } catch (IOException e) {
@@ -163,7 +166,7 @@ public class BlueprintGUI  extends Screen {
                         CompoundTag nbt = TagParser.parseTag(data.toString());
                         CompoundTag cleanNBT = Blueprint.cleanUpBlueprintNBT(nbt);
                         if (cleanNBT!=null) {
-                            this.blueprint.setTag(cleanNBT);
+                            NbtHelper.setTag(this.blueprint, cleanNBT);
                             ModNetworkHandler.sendToServer(new BlueprintSync(cleanNBT));
                         }
                     } catch (CommandSyntaxException e) {

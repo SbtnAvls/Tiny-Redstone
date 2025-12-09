@@ -6,6 +6,7 @@ import com.dannyandson.tinyredstone.api.IPanelCover;
 import com.dannyandson.tinyredstone.blocks.PanelTileRenderer;
 import com.dannyandson.tinyredstone.blocks.RenderHelper;
 import com.dannyandson.tinyredstone.blocks.Side;
+import com.dannyandson.tinyredstone.compat.NbtHelper;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
@@ -13,7 +14,6 @@ import net.minecraft.client.model.geom.EntityModelSet;
 import net.minecraft.client.renderer.BlockEntityWithoutLevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
-import net.minecraft.client.renderer.block.model.ItemTransforms;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderDispatcher;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.nbt.CompoundTag;
@@ -33,8 +33,9 @@ public class PanelItemRenderer extends BlockEntityWithoutLevelRenderer {
         TextureAtlasSprite sprite = RenderHelper.getSprite(PanelTileRenderer.TEXTURE);
         VertexConsumer builder = buffer.getBuffer(RenderType.solid());
         Integer color = DyeColor.GRAY.getMapColor().col;
-        if (stack.getTag()!=null && stack.getTag().contains("BlockEntityTag") ) {
-            CompoundTag blockEntityTag = stack.getTag().getCompound("BlockEntityTag");
+        CompoundTag stackTag = NbtHelper.getTag(stack);
+        if (stackTag != null && stackTag.contains("BlockEntityTag") ) {
+            CompoundTag blockEntityTag = stackTag.getCompound("BlockEntityTag");
             if (blockEntityTag.contains("color")) {
                 color = blockEntityTag.getInt("color");
             }
@@ -44,15 +45,15 @@ public class PanelItemRenderer extends BlockEntityWithoutLevelRenderer {
         matrixStack.translate(0,0.125,0);
 
 
-        if (stack.getTag() !=null && stack.getTag().contains("BlockEntityTag")) {
+        if (stackTag != null && stackTag.contains("BlockEntityTag")) {
 
-            CompoundTag itemTag = stack.getTag().getCompound("BlockEntityTag");
+            CompoundTag itemTag = stackTag.getCompound("BlockEntityTag");
 
             if (itemTag.contains("cover")) {
-                String coverClass = stack.getTag().getCompound("BlockEntityTag").getString("cover");
+                String coverClass = stackTag.getCompound("BlockEntityTag").getString("cover");
                 try {
                     IPanelCover cover = (IPanelCover) Class.forName(coverClass).getConstructor().newInstance();
-                    cover.readNBT(stack.getTag().getCompound("BlockEntityTag").getCompound("coverData"));
+                    cover.readNBT(stackTag.getCompound("BlockEntityTag").getCompound("coverData"));
                     matrixStack.pushPose();
                     cover.render(matrixStack, buffer, combinedLight, combinedOverlay, color);
                     matrixStack.popPose();
@@ -173,12 +174,12 @@ public class PanelItemRenderer extends BlockEntityWithoutLevelRenderer {
     }
 
     private void add(VertexConsumer renderer, PoseStack stack, float x, float y, float z, float u, float v, int combinedLightIn, Integer color) {
-        renderer.vertex(stack.last().pose(), x, y, z)
-                .color(RenderHelper.getRed(color),RenderHelper.getGreen(color),RenderHelper.getBlue(color),RenderHelper.getAlpha(color))
-                .uv(u, v)
-                .uv2(combinedLightIn)
-                .normal(1, 0, 0)
-                .endVertex();
+        // In 1.21+, use addVertex instead of vertex
+        renderer.addVertex(stack.last().pose(), x, y, z)
+                .setColor(RenderHelper.getRed(color),RenderHelper.getGreen(color),RenderHelper.getBlue(color),RenderHelper.getAlpha(color))
+                .setUv(u, v)
+                .setLight(combinedLightIn)
+                .setNormal(1, 0, 0);
     }
 
 

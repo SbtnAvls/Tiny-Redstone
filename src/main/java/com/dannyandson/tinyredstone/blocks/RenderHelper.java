@@ -101,18 +101,18 @@ public class RenderHelper {
     }
 
     public static void add(VertexConsumer renderer, Matrix4f matrix4f, float x, float y, float z, int color, float alpha) {
-        renderer.vertex(matrix4f, x, y, z)
-                .color(color >> 16 & 255,color >> 8 & 255, color & 255, (int)(alpha*255f))
-                .endVertex();
+        // In 1.21+, use addVertex instead of vertex
+        renderer.addVertex(matrix4f, x, y, z)
+                .setColor(color >> 16 & 255,color >> 8 & 255, color & 255, (int)(alpha*255f));
     }
 
     public static void add(VertexConsumer renderer, Matrix4f matrix4f, float x, float y, float z, float u, float v, int combinedLightIn, int color, float alpha) {
-        renderer.vertex(matrix4f, x, y, z)
-                .color(color >> 16 & 255,color >> 8 & 255, color & 255, (int)(alpha*255f))
-                .uv(u, v)
-                .uv2(combinedLightIn)
-                .normal(1, 0, 0)
-                .endVertex();
+        // In 1.21+, use addVertex instead of vertex
+        renderer.addVertex(matrix4f, x, y, z)
+                .setColor(color >> 16 & 255,color >> 8 & 255, color & 255, (int)(alpha*255f))
+                .setUv(u, v)
+                .setLight(combinedLightIn)
+                .setNormal(1, 0, 0);
     }
 
     public static int getColor (int alpha, int red, int green, int blue){

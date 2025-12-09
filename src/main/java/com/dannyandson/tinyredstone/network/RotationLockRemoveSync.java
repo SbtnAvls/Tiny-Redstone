@@ -1,23 +1,30 @@
 package com.dannyandson.tinyredstone.network;
 
+import com.dannyandson.tinyredstone.TinyRedstone;
 import com.dannyandson.tinyredstone.blocks.RotationLock;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
+import io.netty.buffer.ByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.function.Supplier;
+public record RotationLockRemoveSync() implements CustomPacketPayload {
 
-public class RotationLockRemoveSync {
-    public RotationLockRemoveSync() {}
+    public static final Type<RotationLockRemoveSync> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(TinyRedstone.MODID, "rotation_lock_remove_sync"));
 
-    public RotationLockRemoveSync(FriendlyByteBuf buffer) {}
+    public static final StreamCodec<ByteBuf, RotationLockRemoveSync> STREAM_CODEC = StreamCodec.unit(new RotationLockRemoveSync());
 
-    public void toBytes(FriendlyByteBuf buf) {}
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
+    }
 
-    public boolean handle(Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(()-> {
-            RotationLock.removeServerLock(ctx.get().getSender());
-            ctx.get().setPacketHandled(true);
+    public static void handle(RotationLockRemoveSync packet, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (ctx.player() instanceof ServerPlayer serverPlayer) {
+                RotationLock.removeServerLock(serverPlayer);
+            }
         });
-        return true;
     }
 }

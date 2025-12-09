@@ -1,45 +1,42 @@
 package com.dannyandson.tinyredstone.network;
 
+import com.dannyandson.tinyredstone.TinyRedstone;
 import com.dannyandson.tinyredstone.items.Blueprint;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.codec.ByteBufCodecs;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.world.item.component.CustomData;
+import net.neoforged.neoforge.network.handling.IPayloadContext;
 
-import java.util.function.Supplier;
+public record BlueprintSync(CompoundTag nbt) implements CustomPacketPayload {
 
-public class BlueprintSync {
+    public static final Type<BlueprintSync> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(TinyRedstone.MODID, "blueprint_sync"));
 
-    private final CompoundTag nbt;
+    public static final StreamCodec<FriendlyByteBuf, BlueprintSync> STREAM_CODEC = StreamCodec.composite(
+            ByteBufCodecs.COMPOUND_TAG, BlueprintSync::nbt,
+            BlueprintSync::new
+    );
 
-    public BlueprintSync(CompoundTag nbt)
-    {
-        this.nbt=nbt;
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
     }
 
-    public BlueprintSync(FriendlyByteBuf buffer)
-    {
-        this.nbt=buffer.readNbt();
-    }
-
-    public void toBytes(FriendlyByteBuf buf)
-    {
-        buf.writeNbt(nbt);
-    }
-
-    public boolean handle(Supplier<NetworkEvent.Context> ctx) {
-        ctx.get().enqueueWork(()-> {
-            ServerPlayer player = ctx.get().getSender();
-            if (player != null) {
-                ItemStack blueprint = ctx.get().getSender().getMainHandItem();
+    public static void handle(BlueprintSync packet, IPayloadContext ctx) {
+        ctx.enqueueWork(() -> {
+            if (ctx.player() instanceof ServerPlayer serverPlayer) {
+                ItemStack blueprint = serverPlayer.getMainHandItem();
                 if (blueprint.getItem() instanceof Blueprint) {
-                    blueprint.setTag(this.nbt);
+                    // In 1.21+, use data components instead of setTag
+                    blueprint.set(DataComponents.CUSTOM_DATA, CustomData.of(packet.nbt()));
                 }
             }
-            ctx.get().setPacketHandled(true);
         });
-        return true;
     }
-
 }
